@@ -34,6 +34,7 @@
             --radius-lg: 12px;
             --intro-bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             --intro-text: #ffffff;
+            --modal-overlay: rgba(15, 23, 42, 0.7);
         }
 
         [data-theme="dark"] {
@@ -51,12 +52,13 @@
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5);
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
             --intro-bg: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+            --modal-overlay: rgba(2, 6, 23, 0.85);
         }
 
         * {
             box-sizing: border-box;
             font-family: 'Inter', sans-serif;
-            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+            transition: background-color 0.6s ease, color 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease;
         }
 
         body {
@@ -138,7 +140,7 @@
             align-items: center;
             z-index: 9999;
             padding: 20px;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.6s ease;
         }
 
         .intro-header { text-align: center; margin-bottom: 40px; }
@@ -151,11 +153,11 @@
            ========================================= */
         #mainContent {
             display: none; width: 100%; padding: 40px 20px; justify-content: center;
-            animation: fadeIn 0.6s ease;
+            animation: fadeIn 0.8s ease;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -197,7 +199,6 @@
             display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px;
         }
 
-        /* PERFECT ALIGNMENT FIX: minmax(0, 1fr) forces exact grid structure regardless of content */
         .list-row {
             display: grid; 
             grid-template-columns: 30px minmax(0, 3fr) minmax(0, 2fr) minmax(0, 4fr) 36px; 
@@ -217,7 +218,7 @@
         .payment-wrapper select { flex: 1; min-width: 0; }
         .amount-box { display: none; align-items: center; gap: 8px; flex: 1; min-width: 0;}
         .amount-box.active { display: flex; }
-        .amount-box input { width: 100%; min-width: 0; }
+        .amount-box input { width: 100%; min-width: 0; text-align: left; }
         .currency { font-weight: 700; font-size: 12px; color: var(--text-muted); white-space: nowrap;}
 
         .btn-del-row {
@@ -292,6 +293,65 @@
         .btn-icon.del:hover { background: var(--danger); color: white; border-color: var(--danger); }
 
         .no-history { color: var(--text-muted); font-size: 14px; text-align: center; font-style: italic; padding: 20px 0;}
+
+        /* =========================================
+           REMINDER MODAL (CENTRAL ALERT)
+           ========================================= */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--modal-overlay);
+            display: none; /* Hidden default */
+            justify-content: center;
+            align-items: center;
+            z-index: 100000;
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 40px;
+            border-radius: var(--radius-lg);
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            transform: scale(0.95);
+            animation: popIn 0.3s ease forwards;
+        }
+
+        @keyframes popIn {
+            to { transform: scale(1); }
+        }
+
+        .modal-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+
+        .modal-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--danger);
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .modal-desc {
+            font-size: 15px;
+            color: var(--text-main);
+            line-height: 1.5;
+            margin-bottom: 25px;
+            font-weight: 500;
+        }
+
+        .btn-modal {
+            width: 100%;
+            font-size: 15px;
+            padding: 14px;
+        }
 
         /* =========================================
            PDF TEMPLATE (HIDDEN FROM UI)
@@ -410,6 +470,20 @@
     </div>
 
     <!-- =========================================
+         REMINDER MODAL (CENTRAL ALERT)
+         ========================================= -->
+    <div id="reminderModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-icon">⚠️</div>
+            <div class="modal-title">PAALALA!</div>
+            <div class="modal-desc">
+                Paki-pasa at i-process na agad ang listahang ito para maiwasan ang delay sa pagpapadala ng inyong delivery.
+            </div>
+            <button class="btn btn-primary btn-modal" onclick="closeReminder()">AYOS, NAINTINDIHAN KO</button>
+        </div>
+    </div>
+
+    <!-- =========================================
          HIDDEN PDF TEMPLATE (FOR CLEAN EXPORT)
          ========================================= -->
     <div style="display: none;">
@@ -503,10 +577,36 @@
                 }
                 // Load history in the main page
                 loadHistory();
-            }, 500);
+            }, 600); 
         }
 
-        // --- 4. FORM DYNAMICS ---
+        // --- 4. FORM DYNAMICS & COMMA FORMATTING ---
+        
+        // FORMATTER: Nag-aadd ng comma habang nagta-type
+        function formatNumberInput(input) {
+            let cursorPostion = input.selectionStart;
+            let originalLength = input.value.length;
+
+            let val = input.value.replace(/[^0-9.]/g, ''); // Tanggalin ang letters/symbols
+            let parts = val.split('.');
+            if (parts.length > 2) parts = [parts[0], parts[1]]; // Keep only one decimal point
+            
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); // Add Commas
+            input.value = parts.join('.');
+
+            let newLength = input.value.length;
+            cursorPostion = cursorPostion + (newLength - originalLength);
+            input.setSelectionRange(cursorPostion, cursorPostion);
+        }
+
+        // FORMATTER: Kapag naiwan ang textbox (blur), gagawin nyang may .00
+        function formatCurrencyBlur(input) {
+            let val = input.value.replace(/,/g, '');
+            if(val && !isNaN(val)) {
+                input.value = parseFloat(val).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+        }
+
         function toggleAmount(selectEl) {
             const box = selectEl.closest('.payment-wrapper').querySelector('.amount-box');
             const input = box.querySelector('.in-amount');
@@ -523,6 +623,7 @@
             const container = document.getElementById('listContainer');
             const div = document.createElement('div');
             div.className = 'list-row';
+            // Pinalitan ko ng type="text" ang in-amount para gumana ang comma formatter
             div.innerHTML = `
                 <div class="row-num"></div>
                 <input type="text" class="input-control in-name" placeholder="PATIENT NAME">
@@ -534,7 +635,7 @@
                     </select>
                     <div class="amount-box">
                         <span class="currency">PHP</span>
-                        <input type="number" step="0.01" class="input-control in-amount" placeholder="0.00">
+                        <input type="text" class="input-control in-amount" placeholder="0.00" oninput="formatNumberInput(this)" onblur="formatCurrencyBlur(this)">
                     </div>
                 </div>
                 <button class="btn-del-row" onclick="removeRow(this)">X</button>
@@ -574,12 +675,13 @@
                 const name = rows[i].querySelector('.in-name');
                 const agency = rows[i].querySelector('.in-agency');
                 const type = rows[i].querySelector('.in-payment-type').value;
-                const amt = rows[i].querySelector('.in-amount');
+                const amtInput = rows[i].querySelector('.in-amount');
+                const rawAmt = amtInput.value.replace(/,/g, ''); // Tanggalin ang comma para ma-check
 
                 if(!name.value.trim()) { alert(`Enter Patient Name on Row ${i+1}`); name.focus(); return false;}
                 if(!agency.value.trim()) { alert(`Enter Agency on Row ${i+1}`); agency.focus(); return false;}
-                if(type === "WITH EXCESS" && (!amt.value.trim() || parseFloat(amt.value) <= 0)) {
-                    alert(`Enter valid Excess Amount on Row ${i+1}`); amt.focus(); return false;
+                if(type === "WITH EXCESS" && (!rawAmt.trim() || parseFloat(rawAmt) <= 0)) {
+                    alert(`Enter valid Excess Amount on Row ${i+1}`); amtInput.focus(); return false;
                 }
             }
             return true;
@@ -630,7 +732,16 @@
             }
         }
 
-        // --- 7. EXPORT ACTIONS ---
+        // --- 7. MODAL ALERT MANAGEMENT ---
+        function showReminder() {
+            document.getElementById('reminderModal').style.display = 'flex';
+        }
+
+        function closeReminder() {
+            document.getElementById('reminderModal').style.display = 'none';
+        }
+
+        // --- 8. EXPORT ACTIONS ---
         function getFormData() {
             const data = {
                 date: document.getElementById('valDate').value,
@@ -643,11 +754,16 @@
 
             document.querySelectorAll('.list-row').forEach(row => {
                 const pType = row.querySelector('.in-payment-type').value;
-                const amt = parseFloat(row.querySelector('.in-amount').value) || 0;
+                const rawAmt = row.querySelector('.in-amount').value.replace(/,/g, ''); // Tanggal comma
+                const amt = parseFloat(rawAmt) || 0;
+                
+                // I-format nang maganda na may comma kapag ipapasa na sa Copy o PDF
+                const formattedAmount = amt.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
                 data.patients.push({
                     name: row.querySelector('.in-name').value.toUpperCase(),
                     agency: row.querySelector('.in-agency').value.toUpperCase(),
-                    paymentText: pType === "WITH EXCESS" ? `WITH EXCESS: PHP ${amt.toFixed(2)}` : "NO EXCESS PAYMENT"
+                    paymentText: pType === "WITH EXCESS" ? `WITH EXCESS: PHP ${formattedAmount}` : "NO EXCESS PAYMENT"
                 });
             });
             return data;
@@ -665,12 +781,16 @@
                 navigator.clipboard.writeText(text).then(() => alert("✅ COPIED TO CLIPBOARD!"));
             
             } else if(type === 'pdf') {
-                saveToHistory(data); // Auto-save on export, will update history list immediately
+                saveToHistory(data); // Auto-save on export
                 generatePDF(data);
+                // PALABASIN ANG REMINDER POPUP PAGKATAPOS MAG-EXPORT
+                setTimeout(() => {
+                    showReminder();
+                }, 1000); 
             }
         }
 
-        // --- 8. HTML2PDF GENERATOR ---
+        // --- 9. HTML2PDF GENERATOR ---
         function populatePDFTemplate(data) {
             const fDate = new Date(data.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
             document.getElementById('pdfDate').innerText = fDate;
@@ -709,7 +829,7 @@
             });
         }
 
-        // Helper to download directly from History widget
+        // Helper to download directly from History widget without triggering the popup reminder
         function generatePDFFromHistory(recordData) {
             generatePDF(recordData);
         }
