@@ -61,7 +61,7 @@
         }
 
         /* SMOOTHER TRANSITION FIX */
-        body, .dashboard-container, .input-control, .list-row, .bottom-area, .history-item, .modal-box {
+        body, .dashboard-container, .input-control, .list-row, .bottom-area, .history-item, .modal-box, .pending-item {
             transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
         }
 
@@ -219,7 +219,6 @@
         /* LIST SECTION */
         .section-title { font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;}
         
-        /* SCROLLABLE LIST CONTAINER LIMIT */
         .list-container {
             display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px;
             max-height: 350px; overflow-y: auto; padding-right: 5px; 
@@ -227,7 +226,7 @@
         .list-container::-webkit-scrollbar { width: 6px; }
         .list-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 
-        /* PERFECT ALIGNMENT FIX */
+        /* EXACT ALIGNMENT */
         .list-row {
             display: grid; 
             grid-template-columns: 30px minmax(0, 3fr) minmax(0, 2fr) minmax(0, 4fr) 36px; 
@@ -324,7 +323,7 @@
         .no-history { color: var(--text-muted); font-size: 14px; text-align: center; font-style: italic; padding: 20px 0;}
 
         /* =========================================
-           MODALS (CENTRAL ALERTS)
+           MODALS: ALERTS, DELETE, PENDING NOTIF
            ========================================= */
         .modal-overlay {
             position: fixed;
@@ -360,6 +359,31 @@
         .modal-actions { display: flex; gap: 10px; width: 100%; }
         .btn-modal { flex: 1; font-size: 14px; padding: 14px; }
 
+        /* Pending Over-5-Mins List */
+        .pending-container {
+            max-height: 200px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .pending-item {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .pending-item:hover { border-color: var(--danger); }
+        .pending-item-info { display: flex; flex-direction: column; gap: 3px; }
+        .pending-item-title { font-weight: 700; font-size: 14px; color: var(--text-main); }
+        .pending-item-time { font-size: 12px; color: var(--danger); font-weight: 600; }
+
         /* =========================================
            PDF TEMPLATE (HIDDEN FROM UI)
            ========================================= */
@@ -383,11 +407,10 @@
 
         .pdf-footer { margin-top: 50px; font-size: 9pt; color: #000; text-align: center; border-top: 1px dashed #999; padding-top: 10px; font-style: italic;}
         
-        /* PRINT CSS - REMOVES SCROLL LIMIT SO IT PRINTS FULLY */
         @media print {
             * { color: black !important; background: transparent !important; border-color: black !important; text-shadow: none !important; box-shadow: none !important; }
             body { padding: 0; min-height: auto;}
-            #introScreen, .theme-toggle { display: none !important; }
+            #introScreen, .theme-toggle, .modal-overlay { display: none !important; }
             #mainContent { display: block !important; padding: 0; }
             .container { border: none; padding: 0; max-width: 100%; }
             .summary-box { border: 1px solid #000 !important; border-radius: 0; padding: 20px; }
@@ -405,7 +428,7 @@
     <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">🌙</button>
 
     <!-- =========================================
-         INTRO SCREEN (SPLASH SCREEN)
+         INTRO SCREEN
          ========================================= -->
     <div id="introScreen">
         <div class="intro-header">
@@ -466,9 +489,7 @@
                 <button class="btn btn-success" onclick="addRow()" style="padding: 8px 16px; font-size: 12px;">+ ADD ROW</button>
             </div>
 
-            <div class="list-container" id="listContainer">
-                <!-- Rows injected here -->
-            </div>
+            <div class="list-container" id="listContainer"></div>
 
             <!-- SUMMARY & ACTIONS -->
             <div class="bottom-area">
@@ -482,13 +503,10 @@
                 </div>
             </div>
 
-            <!-- =========================================
-                 RECENT TRANSACTIONS IN MAIN PAGE
-                 ========================================= -->
+            <!-- RECENT TRANSACTIONS -->
             <div class="history-section">
                 <div class="history-header">RECENT TRANSACTIONS</div>
                 <div class="history-list" id="historyList">
-                    <!-- Data populated by JS -->
                     <div class="no-history">No recent transactions found.</div>
                 </div>
             </div>
@@ -497,16 +515,16 @@
     </div>
 
     <!-- =========================================
-         MODALS: NOTIFICATION & DELETE CONFIRMATION
+         MODALS (ALERTS & CONFIRMATIONS)
          ========================================= -->
          
     <!-- 1. Post-Export Reminder Modal -->
     <div id="reminderModal" class="modal-overlay">
         <div class="modal-box" id="reminderBox">
-            <div class="modal-icon">⚠️</div>
-            <div class="modal-title warning">PAALALA!</div>
+            <div class="modal-icon">✅</div>
+            <div class="modal-title">SUCCESS!</div>
             <div class="modal-desc">
-                Paki-pasa at i-process na agad ang listahang ito para maiwasan ang delay sa pagpapadala ng inyong delivery.
+                Na-save at nai-generate na ang dokumento. Paki-pasa at i-process na agad ang listahang ito para hindi ma-delay ang delivery.
             </div>
             <button class="btn btn-primary btn-modal" onclick="closeModal('reminderModal', 'reminderBox')">AYOS, NAINTINDIHAN KO</button>
         </div>
@@ -516,19 +534,36 @@
     <div id="deleteModal" class="modal-overlay">
         <div class="modal-box" id="deleteBox">
             <div class="modal-icon">🚚</div>
-            <div class="modal-title">IPAPADALA NA BA?</div>
+            <div class="modal-title warning">IPAPADALA NA BA?</div>
             <div class="modal-desc">
-                Ipadala nyo na ba ito sa delivery rider / sales regarding sa transaction?
+                Na-process at ipinadala nyo na ba ito sa delivery rider / sales regarding sa transaction?
             </div>
             <div class="modal-actions">
                 <button class="btn btn-success btn-modal" onclick="confirmDelete(true)">YES (DELETE NA)</button>
-                <button class="btn btn-danger btn-modal" onclick="confirmDelete(false)">NO (STAY MUNA)</button>
+                <button class="btn btn-outline btn-modal" onclick="confirmDelete(false)">NO (STAY MUNA)</button>
             </div>
         </div>
     </div>
 
+    <!-- 3. Smart 5-Minute Pending Alert Modal -->
+    <div id="pendingModal" class="modal-overlay">
+        <div class="modal-box" id="pendingBox" style="max-width: 500px;">
+            <div class="modal-icon">⏰</div>
+            <div class="modal-title warning">PENDING TRANSACTIONS!</div>
+            <div class="modal-desc">
+                Mayroon kayong mga naiwang transactions sa history na lagpas 5 minuto na. Na-process na ba ang mga ito? I-click ang listahan para i-clear.
+            </div>
+            
+            <div class="pending-container" id="pendingListWrapper">
+                <!-- Injected via JS -->
+            </div>
+
+            <button class="btn btn-outline btn-modal" onclick="closeModal('pendingModal', 'pendingBox')">HINDI PA, MAMAYA NA</button>
+        </div>
+    </div>
+
     <!-- =========================================
-         HIDDEN PDF TEMPLATE (FOR CLEAN EXPORT)
+         HIDDEN PDF TEMPLATE
          ========================================= -->
     <div style="display: none;">
         <div id="pdfTemplate">
@@ -625,6 +660,9 @@
                 loadHistory();
 
                 setTimeout(() => { intro.style.display = 'none'; }, 800);
+                
+                // Start checking for 5-minute pending items every 1 minute
+                setInterval(checkPendingTransactions, 60000);
 
             }, 1300); 
         }
@@ -633,14 +671,11 @@
         function formatNumberInput(input) {
             let cursorPostion = input.selectionStart;
             let originalLength = input.value.length;
-
             let val = input.value.replace(/[^0-9.]/g, ''); 
             let parts = val.split('.');
             if (parts.length > 2) parts = [parts[0], parts[1]]; 
-            
             parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); 
             input.value = parts.join('.');
-
             let newLength = input.value.length;
             cursorPostion = cursorPostion + (newLength - originalLength);
             input.setSelectionRange(cursorPostion, cursorPostion);
@@ -737,9 +772,16 @@
         function saveToHistory(record) {
             let history = JSON.parse(localStorage.getItem('deliveryHistory')) || [];
             
-            // ANTI-DUPLICATE: Kung kapareho lang ng nasa top history ang data, wag na isave ulit.
-            if(history.length > 0 && JSON.stringify(history[0]) === JSON.stringify(record)) {
-                return; 
+            // Limit to check if it's the exact same as the most recent one (Anti-Duplicate)
+            if(history.length > 0) {
+                const lastRec = history[0];
+                if(lastRec.location === record.location && lastRec.invoices === record.invoices && lastRec.processor === record.processor) {
+                    // Update timestamp to avoid duplicate spam if they just hit download 2x
+                    history[0].timestamp = Date.now();
+                    localStorage.setItem('deliveryHistory', JSON.stringify(history));
+                    loadHistory();
+                    return;
+                }
             }
 
             history.unshift(record); 
@@ -769,14 +811,14 @@
                         <div class="history-actions">
                             <button class="btn-icon" title="Re-copy Text" onclick='copyFromHistory(${index})'>📋</button>
                             <button class="btn-icon" title="Re-download PDF" onclick='generatePDFFromHistory(${JSON.stringify(rec)})'>📥</button>
-                            <button class="btn-icon del" title="Send to Rider/Delete" onclick="promptDeleteHistory(${index})">🗑️</button>
+                            <button class="btn-icon del" title="Send to Rider / Delete" onclick="promptDeleteHistory(${index})">🗑️</button>
                         </div>
                     </div>
                 `;
             });
         }
 
-        // --- 7. MODAL ALERT & SMART DELETE MANAGEMENT ---
+        // --- 7. MODAL ALERT MANAGEMENT ---
         let historyIndexToDelete = -1;
 
         function openModal(modalId, boxId) {
@@ -799,6 +841,7 @@
             }, 300);
         }
 
+        // Smart Delete Process
         function promptDeleteHistory(index) {
             historyIndexToDelete = index;
             openModal('deleteModal', 'deleteBox');
@@ -815,9 +858,51 @@
             historyIndexToDelete = -1;
         }
 
+        // 5-Minute Pending Tracker
+        function checkPendingTransactions() {
+            const history = JSON.parse(localStorage.getItem('deliveryHistory')) || [];
+            if (history.length === 0) return;
+
+            const now = Date.now();
+            let hasPending = false;
+            let listHTML = '';
+
+            history.forEach((rec, index) => {
+                const ts = rec.timestamp || now; // Handle old data without timestamp
+                const diffMins = Math.floor((now - ts) / 60000); // convert ms to mins
+
+                if (diffMins >= 5) {
+                    hasPending = true;
+                    listHTML += `
+                        <div class="pending-item" onclick="resolvePendingItem(${index})">
+                            <div class="pending-item-info">
+                                <span class="pending-item-title">${rec.location} (${rec.invoices} INVOICES)</span>
+                                <span class="pending-item-time">Nakatambay ng ${diffMins} minuto</span>
+                            </div>
+                            <span style="font-size: 20px;">👉</span>
+                        </div>
+                    `;
+                }
+            });
+
+            if (hasPending) {
+                document.getElementById('pendingListWrapper').innerHTML = listHTML;
+                openModal('pendingModal', 'pendingBox');
+            }
+        }
+
+        function resolvePendingItem(index) {
+            // Close pending modal and open delete prompt for that item
+            closeModal('pendingModal', 'pendingBox');
+            setTimeout(() => {
+                promptDeleteHistory(index);
+            }, 350); 
+        }
+
         // --- 8. EXPORT & COPY ACTIONS ---
         function getFormData() {
             const data = {
+                timestamp: Date.now(), // Saving timestamp for 5-minute tracker
                 date: document.getElementById('valDate').value,
                 location: document.getElementById('valLocation').value.toUpperCase(),
                 processor: document.getElementById('valProcessor').value.toUpperCase(),
@@ -853,7 +938,7 @@
             if(!validateForm()) return;
             const data = getFormData();
             
-            // BOTH PDF and COPY will save to history now
+            // BOTH PDF and COPY will save to history
             saveToHistory(data);
 
             if(type === 'copy') {
@@ -866,7 +951,6 @@
             }
         }
 
-        // Action from History Widget -> Copy Text
         function copyFromHistory(index) {
             let history = JSON.parse(localStorage.getItem('deliveryHistory')) || [];
             let data = history[index];
@@ -876,7 +960,6 @@
             navigator.clipboard.writeText(text).then(() => alert("✅ RE-COPIED TO CLIPBOARD!"));
         }
 
-        // Action from History Widget -> Generate PDF
         function generatePDFFromHistory(recordData) {
             generatePDF(recordData);
         }
