@@ -58,7 +58,15 @@
         * {
             box-sizing: border-box;
             font-family: 'Inter', sans-serif;
-            transition: background-color 0.6s ease, color 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease;
+        }
+
+        /* 
+           SMOOTHER TRANSITION FIX: 
+           Inalis ang transition sa "*" para hindi mabigat sa browser. 
+           Inapply lang sa layout boxes para hindi nakakahilo sa mata.
+        */
+        body, .dashboard-container, .input-control, .list-row, .bottom-area, .history-item, .modal-box {
+            transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
         }
 
         body {
@@ -97,7 +105,9 @@
             justify-content: center;
             align-items: center;
             box-shadow: var(--shadow-md);
+            transition: transform 0.2s ease, background-color 0.4s ease;
         }
+        .theme-toggle:hover { transform: scale(1.1); }
 
         .btn {
             padding: 12px 24px;
@@ -128,7 +138,7 @@
         .btn-outline:hover { background-color: var(--border); }
 
         /* =========================================
-           INTRO SCREEN
+           INTRO SCREEN & LOADING BAR
            ========================================= */
         #introScreen {
             position: fixed;
@@ -140,7 +150,8 @@
             align-items: center;
             z-index: 9999;
             padding: 20px;
-            transition: opacity 0.6s ease;
+            /* Slide up animation transition */
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease;
         }
 
         .intro-header { text-align: center; margin-bottom: 40px; }
@@ -148,17 +159,35 @@
         .intro-creator { font-size: 16px; color: #94a3b8; letter-spacing: 3px; }
         .intro-creator span { color: var(--primary); font-weight: bold; }
 
+        .loading-container {
+            width: 250px;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            display: none; /* hidden initial */
+            margin-top: 10px;
+        }
+
+        .loading-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--primary);
+            border-radius: 10px;
+            transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         /* =========================================
            MAIN DASHBOARD (FORM)
            ========================================= */
         #mainContent {
-            display: none; width: 100%; padding: 40px 20px; justify-content: center;
-            animation: fadeIn 0.8s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
+            display: none; 
+            width: 100%; 
+            padding: 40px 20px; 
+            justify-content: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .dashboard-container {
@@ -199,6 +228,7 @@
             display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px;
         }
 
+        /* PERFECT ALIGNMENT FIX */
         .list-row {
             display: grid; 
             grid-template-columns: 30px minmax(0, 3fr) minmax(0, 2fr) minmax(0, 4fr) 36px; 
@@ -287,7 +317,7 @@
             background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main);
             width: 36px; height: 36px; border-radius: var(--radius-md);
             cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: 0.2s; font-size: 16px;
+            font-size: 16px;
         }
         .btn-icon:hover { background: var(--primary); color: white; border-color: var(--primary); }
         .btn-icon.del:hover { background: var(--danger); color: white; border-color: var(--danger); }
@@ -306,7 +336,8 @@
             align-items: center;
             z-index: 100000;
             backdrop-filter: blur(5px);
-            animation: fadeIn 0.3s ease;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .modal-box {
@@ -318,12 +349,8 @@
             width: 90%;
             text-align: center;
             box-shadow: var(--shadow-lg);
-            transform: scale(0.95);
-            animation: popIn 0.3s ease forwards;
-        }
-
-        @keyframes popIn {
-            to { transform: scale(1); }
+            transform: scale(0.90);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .modal-icon {
@@ -390,9 +417,14 @@
             <h1 class="intro-title">DELIVERY SYSTEM</h1>
             <div class="intro-creator">CREATED BY <span>gelocutler</span></div>
         </div>
-        <button class="btn btn-primary" style="font-size: 16px; padding: 15px 40px;" onclick="enterSystem()">
+        
+        <button id="btnEnter" class="btn btn-primary" style="font-size: 16px; padding: 15px 40px;" onclick="enterSystem()">
             ENTER SYSTEM
         </button>
+
+        <div class="loading-container" id="loadingContainer">
+            <div class="loading-bar" id="loadingBar"></div>
+        </div>
     </div>
 
     <!-- =========================================
@@ -473,7 +505,7 @@
          REMINDER MODAL (CENTRAL ALERT)
          ========================================= -->
     <div id="reminderModal" class="modal-overlay">
-        <div class="modal-box">
+        <div class="modal-box" id="reminderBox">
             <div class="modal-icon">⚠️</div>
             <div class="modal-title">PAALALA!</div>
             <div class="modal-desc">
@@ -561,37 +593,53 @@
             }
         }, 1000);
 
-        // --- 3. NAVIGATION & INITIALIZATION ---
+        // --- 3. NAVIGATION & INITIALIZATION (SLIDE EFFECT) ---
         function enterSystem() {
-            const intro = document.getElementById('introScreen');
-            intro.style.opacity = '0';
-            
+            // Hide Button, Show Loading Bar
+            document.getElementById('btnEnter').style.display = 'none';
+            document.getElementById('loadingContainer').style.display = 'block';
+
+            // Animate Loading Bar
             setTimeout(() => {
-                intro.style.display = 'none';
-                document.getElementById('mainContent').style.display = 'flex';
-                document.getElementById('valDate').valueAsDate = new Date();
+                document.getElementById('loadingBar').style.width = '100%';
+            }, 50);
+
+            // Trigger Slide and Entry
+            setTimeout(() => {
+                const intro = document.getElementById('introScreen');
+                const main = document.getElementById('mainContent');
                 
-                // Ensure at least one row exists
-                if(document.querySelectorAll('.list-row').length === 0) {
-                    addRow();
-                }
-                // Load history in the main page
+                // Slide up intro
+                intro.style.transform = 'translateY(-100%)';
+                
+                // Show main content smoothly
+                main.style.display = 'flex';
+                setTimeout(() => {
+                    main.style.opacity = '1';
+                    main.style.transform = 'translateY(0)';
+                }, 50);
+
+                // Initialize Inputs
+                document.getElementById('valDate').valueAsDate = new Date();
+                if(document.querySelectorAll('.list-row').length === 0) { addRow(); }
                 loadHistory();
-            }, 600); 
+
+                // Completely hide intro after transition
+                setTimeout(() => { intro.style.display = 'none'; }, 800);
+
+            }, 1300); // Wait for loading bar to finish (1.2s)
         }
 
         // --- 4. FORM DYNAMICS & COMMA FORMATTING ---
-        
-        // FORMATTER: Nag-aadd ng comma habang nagta-type
         function formatNumberInput(input) {
             let cursorPostion = input.selectionStart;
             let originalLength = input.value.length;
 
-            let val = input.value.replace(/[^0-9.]/g, ''); // Tanggalin ang letters/symbols
+            let val = input.value.replace(/[^0-9.]/g, ''); 
             let parts = val.split('.');
-            if (parts.length > 2) parts = [parts[0], parts[1]]; // Keep only one decimal point
+            if (parts.length > 2) parts = [parts[0], parts[1]]; 
             
-            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); // Add Commas
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); 
             input.value = parts.join('.');
 
             let newLength = input.value.length;
@@ -599,7 +647,6 @@
             input.setSelectionRange(cursorPostion, cursorPostion);
         }
 
-        // FORMATTER: Kapag naiwan ang textbox (blur), gagawin nyang may .00
         function formatCurrencyBlur(input) {
             let val = input.value.replace(/,/g, '');
             if(val && !isNaN(val)) {
@@ -623,7 +670,6 @@
             const container = document.getElementById('listContainer');
             const div = document.createElement('div');
             div.className = 'list-row';
-            // Pinalitan ko ng type="text" ang in-amount para gumana ang comma formatter
             div.innerHTML = `
                 <div class="row-num"></div>
                 <input type="text" class="input-control in-name" placeholder="PATIENT NAME">
@@ -676,7 +722,7 @@
                 const agency = rows[i].querySelector('.in-agency');
                 const type = rows[i].querySelector('.in-payment-type').value;
                 const amtInput = rows[i].querySelector('.in-amount');
-                const rawAmt = amtInput.value.replace(/,/g, ''); // Tanggalin ang comma para ma-check
+                const rawAmt = amtInput.value.replace(/,/g, ''); 
 
                 if(!name.value.trim()) { alert(`Enter Patient Name on Row ${i+1}`); name.focus(); return false;}
                 if(!agency.value.trim()) { alert(`Enter Agency on Row ${i+1}`); agency.focus(); return false;}
@@ -690,10 +736,10 @@
         // --- 6. HISTORY MANAGEMENT (LOCAL STORAGE) ---
         function saveToHistory(record) {
             let history = JSON.parse(localStorage.getItem('deliveryHistory')) || [];
-            history.unshift(record); // Add to beginning
-            if(history.length > 15) history.pop(); // Keep only last 15
+            history.unshift(record); 
+            if(history.length > 15) history.pop(); 
             localStorage.setItem('deliveryHistory', JSON.stringify(history));
-            loadHistory(); // Refresh list on main page
+            loadHistory(); 
         }
 
         function loadHistory() {
@@ -728,17 +774,34 @@
                 let history = JSON.parse(localStorage.getItem('deliveryHistory')) || [];
                 history.splice(index, 1);
                 localStorage.setItem('deliveryHistory', JSON.stringify(history));
-                loadHistory(); // Refresh list
+                loadHistory(); 
             }
         }
 
         // --- 7. MODAL ALERT MANAGEMENT ---
         function showReminder() {
-            document.getElementById('reminderModal').style.display = 'flex';
+            const overlay = document.getElementById('reminderModal');
+            const box = document.getElementById('reminderBox');
+            
+            overlay.style.display = 'flex';
+            
+            // Allow display:flex to render before triggering opacity transition
+            setTimeout(() => {
+                overlay.style.opacity = '1';
+                box.style.transform = 'scale(1)';
+            }, 10);
         }
 
         function closeReminder() {
-            document.getElementById('reminderModal').style.display = 'none';
+            const overlay = document.getElementById('reminderModal');
+            const box = document.getElementById('reminderBox');
+            
+            overlay.style.opacity = '0';
+            box.style.transform = 'scale(0.90)';
+            
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 300); // Matches CSS transition time
         }
 
         // --- 8. EXPORT ACTIONS ---
@@ -754,10 +817,9 @@
 
             document.querySelectorAll('.list-row').forEach(row => {
                 const pType = row.querySelector('.in-payment-type').value;
-                const rawAmt = row.querySelector('.in-amount').value.replace(/,/g, ''); // Tanggal comma
+                const rawAmt = row.querySelector('.in-amount').value.replace(/,/g, ''); 
                 const amt = parseFloat(rawAmt) || 0;
                 
-                // I-format nang maganda na may comma kapag ipapasa na sa Copy o PDF
                 const formattedAmount = amt.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
                 data.patients.push({
@@ -781,8 +843,9 @@
                 navigator.clipboard.writeText(text).then(() => alert("✅ COPIED TO CLIPBOARD!"));
             
             } else if(type === 'pdf') {
-                saveToHistory(data); // Auto-save on export
+                saveToHistory(data); 
                 generatePDF(data);
+                
                 // PALABASIN ANG REMINDER POPUP PAGKATAPOS MAG-EXPORT
                 setTimeout(() => {
                     showReminder();
@@ -814,7 +877,7 @@
         function generatePDF(data) {
             populatePDFTemplate(data);
             const element = document.getElementById('pdfTemplate');
-            element.style.display = 'block'; // Unhide temporarily for capture
+            element.style.display = 'block'; 
             
             const opt = {
                 margin:       0.5,
@@ -825,11 +888,10 @@
             };
 
             html2pdf().set(opt).from(element).save().then(() => {
-                element.style.display = 'none'; // Hide again after generation
+                element.style.display = 'none'; 
             });
         }
 
-        // Helper to download directly from History widget without triggering the popup reminder
         function generatePDFFromHistory(recordData) {
             generatePDF(recordData);
         }
