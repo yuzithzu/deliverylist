@@ -61,9 +61,7 @@
         }
 
         /* 
-           SMOOTHER TRANSITION FIX: 
-           Inalis ang transition sa "*" para hindi mabigat sa browser. 
-           Inapply lang sa layout boxes para hindi nakakahilo sa mata.
+           SMOOTHER TRANSITION FIX
         */
         body, .dashboard-container, .input-control, .list-row, .bottom-area, .history-item, .modal-box {
             transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
@@ -150,7 +148,6 @@
             align-items: center;
             z-index: 9999;
             padding: 20px;
-            /* Slide up animation transition */
             transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease;
         }
 
@@ -165,7 +162,7 @@
             background: rgba(255,255,255,0.1);
             border-radius: 10px;
             overflow: hidden;
-            display: none; /* hidden initial */
+            display: none; 
             margin-top: 10px;
         }
 
@@ -224,11 +221,16 @@
         /* LIST SECTION */
         .section-title { font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;}
         
+        /* SCROLLABLE LIST CONTAINER LIMIT */
         .list-container {
             display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px;
+            max-height: 350px; /* LIMIT HEIGHT PARA HINDI HUMABA ANG PAGE */
+            overflow-y: auto;  /* ENABLE SCROLLING */
+            padding-right: 5px; /* SPACE PARA SA SCROLLBAR */
         }
+        .list-container::-webkit-scrollbar { width: 6px; }
+        .list-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 
-        /* PERFECT ALIGNMENT FIX */
         .list-row {
             display: grid; 
             grid-template-columns: 30px minmax(0, 3fr) minmax(0, 2fr) minmax(0, 4fr) 36px; 
@@ -291,8 +293,8 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            max-height: 300px;
-            overflow-y: auto;
+            max-height: 250px; /* LIMIT HEIGHT PARA HINDI HUMABA ANG PAGE */
+            overflow-y: auto;  /* ENABLE SCROLLING */
             padding-right: 5px;
         }
         .history-list::-webkit-scrollbar { width: 6px; }
@@ -331,7 +333,7 @@
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: var(--modal-overlay);
-            display: none; /* Hidden default */
+            display: none; 
             justify-content: center;
             align-items: center;
             z-index: 100000;
@@ -384,7 +386,7 @@
            PDF TEMPLATE (HIDDEN FROM UI)
            ========================================= */
         #pdfTemplate {
-            display: none; /* Only used for generating PDF */
+            display: none; 
             background: white; color: black; padding: 40px; font-family: 'Helvetica', 'Arial', sans-serif;
         }
         .pdf-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 30px; }
@@ -402,6 +404,21 @@
         .pdf-summary-val { font-size: 24pt; font-weight: bold; margin-top: 5px; }
 
         .pdf-footer { margin-top: 50px; font-size: 9pt; color: #000; text-align: center; border-top: 1px dashed #999; padding-top: 10px; font-style: italic;}
+        
+        /* PRINT CSS - REMOVES SCROLL LIMIT SO IT PRINTS FULLY */
+        @media print {
+            * { color: black !important; background: transparent !important; border-color: black !important; text-shadow: none !important; box-shadow: none !important; }
+            body { padding: 0; min-height: auto;}
+            #introScreen, .theme-toggle { display: none !important; }
+            #mainContent { display: block !important; padding: 0; }
+            .container { border: none; padding: 0; max-width: 100%; }
+            .summary-box { border: 1px solid #000 !important; border-radius: 0; padding: 20px; }
+            .summary-val { font-size: 40px !important; }
+            .list-container { max-height: none !important; overflow: visible !important; padding: 0; margin-bottom: 10px;}
+            .patient-row { border: none; border-bottom: 1px solid #ccc !important; border-radius: 0; margin-bottom: 0; padding: 5px 0;}
+            input, select { border: none !important; border-bottom: 1px solid #000 !important; border-radius: 0 !important; padding: 4px !important; appearance: none; -webkit-appearance: none; }
+            .btn-add, .btn-del-row, .action-btns, .history-section { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -471,6 +488,7 @@
                 <button class="btn btn-success" onclick="addRow()" style="padding: 8px 16px; font-size: 12px;">+ ADD ROW</button>
             </div>
 
+            <!-- DINAGDAG ANG HEIGHT LIMIT AT SCROLL DITO -->
             <div class="list-container" id="listContainer">
                 <!-- Rows injected here -->
             </div>
@@ -492,6 +510,7 @@
                  ========================================= -->
             <div class="history-section">
                 <div class="history-header">RECENT TRANSACTIONS</div>
+                <!-- DINAGDAG ANG HEIGHT LIMIT AT SCROLL DITO -->
                 <div class="history-list" id="historyList">
                     <!-- Data populated by JS -->
                     <div class="no-history">No recent transactions found.</div>
@@ -687,6 +706,8 @@
                 <button class="btn-del-row" onclick="removeRow(this)">X</button>
             `;
             container.appendChild(div);
+            // Auto scroll down to the new item
+            container.scrollTop = container.scrollHeight;
             updateRowNumbers();
         }
 
