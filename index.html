@@ -60,9 +60,7 @@
             font-family: 'Inter', sans-serif;
         }
 
-        /* 
-           SMOOTHER TRANSITION FIX
-        */
+        /* SMOOTHER TRANSITION FIX */
         body, .dashboard-container, .input-control, .list-row, .bottom-area, .history-item, .modal-box {
             transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
         }
@@ -224,13 +222,12 @@
         /* SCROLLABLE LIST CONTAINER LIMIT */
         .list-container {
             display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px;
-            max-height: 350px; /* LIMIT HEIGHT PARA HINDI HUMABA ANG PAGE */
-            overflow-y: auto;  /* ENABLE SCROLLING */
-            padding-right: 5px; /* SPACE PARA SA SCROLLBAR */
+            max-height: 350px; overflow-y: auto; padding-right: 5px; 
         }
         .list-container::-webkit-scrollbar { width: 6px; }
         .list-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 
+        /* PERFECT ALIGNMENT FIX */
         .list-row {
             display: grid; 
             grid-template-columns: 30px minmax(0, 3fr) minmax(0, 2fr) minmax(0, 4fr) 36px; 
@@ -293,8 +290,8 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            max-height: 250px; /* LIMIT HEIGHT PARA HINDI HUMABA ANG PAGE */
-            overflow-y: auto;  /* ENABLE SCROLLING */
+            max-height: 250px; 
+            overflow-y: auto;  
             padding-right: 5px;
         }
         .history-list::-webkit-scrollbar { width: 6px; }
@@ -319,7 +316,7 @@
             background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main);
             width: 36px; height: 36px; border-radius: var(--radius-md);
             cursor: pointer; display: flex; align-items: center; justify-content: center;
-            font-size: 16px;
+            transition: 0.2s; font-size: 16px;
         }
         .btn-icon:hover { background: var(--primary); color: white; border-color: var(--primary); }
         .btn-icon.del:hover { background: var(--danger); color: white; border-color: var(--danger); }
@@ -327,7 +324,7 @@
         .no-history { color: var(--text-muted); font-size: 14px; text-align: center; font-style: italic; padding: 20px 0;}
 
         /* =========================================
-           REMINDER MODAL (CENTRAL ALERT)
+           MODALS (CENTRAL ALERTS)
            ========================================= */
         .modal-overlay {
             position: fixed;
@@ -355,32 +352,13 @@
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .modal-icon {
-            font-size: 50px;
-            margin-bottom: 15px;
-        }
-
-        .modal-title {
-            font-size: 22px;
-            font-weight: 800;
-            color: var(--danger);
-            margin-bottom: 10px;
-            letter-spacing: 1px;
-        }
-
-        .modal-desc {
-            font-size: 15px;
-            color: var(--text-main);
-            line-height: 1.5;
-            margin-bottom: 25px;
-            font-weight: 500;
-        }
-
-        .btn-modal {
-            width: 100%;
-            font-size: 15px;
-            padding: 14px;
-        }
+        .modal-icon { font-size: 50px; margin-bottom: 15px; }
+        .modal-title { font-size: 22px; font-weight: 800; color: var(--primary); margin-bottom: 10px; letter-spacing: 1px; }
+        .modal-title.warning { color: var(--danger); }
+        .modal-desc { font-size: 15px; color: var(--text-main); line-height: 1.5; margin-bottom: 25px; font-weight: 500; }
+        
+        .modal-actions { display: flex; gap: 10px; width: 100%; }
+        .btn-modal { flex: 1; font-size: 14px; padding: 14px; }
 
         /* =========================================
            PDF TEMPLATE (HIDDEN FROM UI)
@@ -488,7 +466,6 @@
                 <button class="btn btn-success" onclick="addRow()" style="padding: 8px 16px; font-size: 12px;">+ ADD ROW</button>
             </div>
 
-            <!-- DINAGDAG ANG HEIGHT LIMIT AT SCROLL DITO -->
             <div class="list-container" id="listContainer">
                 <!-- Rows injected here -->
             </div>
@@ -510,7 +487,6 @@
                  ========================================= -->
             <div class="history-section">
                 <div class="history-header">RECENT TRANSACTIONS</div>
-                <!-- DINAGDAG ANG HEIGHT LIMIT AT SCROLL DITO -->
                 <div class="history-list" id="historyList">
                     <!-- Data populated by JS -->
                     <div class="no-history">No recent transactions found.</div>
@@ -521,16 +497,33 @@
     </div>
 
     <!-- =========================================
-         REMINDER MODAL (CENTRAL ALERT)
+         MODALS: NOTIFICATION & DELETE CONFIRMATION
          ========================================= -->
+         
+    <!-- 1. Post-Export Reminder Modal -->
     <div id="reminderModal" class="modal-overlay">
         <div class="modal-box" id="reminderBox">
             <div class="modal-icon">⚠️</div>
-            <div class="modal-title">PAALALA!</div>
+            <div class="modal-title warning">PAALALA!</div>
             <div class="modal-desc">
                 Paki-pasa at i-process na agad ang listahang ito para maiwasan ang delay sa pagpapadala ng inyong delivery.
             </div>
-            <button class="btn btn-primary btn-modal" onclick="closeReminder()">AYOS, NAINTINDIHAN KO</button>
+            <button class="btn btn-primary btn-modal" onclick="closeModal('reminderModal', 'reminderBox')">AYOS, NAINTINDIHAN KO</button>
+        </div>
+    </div>
+
+    <!-- 2. Smart Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-box" id="deleteBox">
+            <div class="modal-icon">🚚</div>
+            <div class="modal-title">IPAPADALA NA BA?</div>
+            <div class="modal-desc">
+                Ipadala nyo na ba ito sa delivery rider / sales regarding sa transaction?
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-success btn-modal" onclick="confirmDelete(true)">YES (DELETE NA)</button>
+                <button class="btn btn-danger btn-modal" onclick="confirmDelete(false)">NO (STAY MUNA)</button>
+            </div>
         </div>
     </div>
 
@@ -542,7 +535,6 @@
             <div class="pdf-header">
                 <h1>Final List For Delivery</h1>
             </div>
-            
             <table class="pdf-meta">
                 <tr>
                     <td class="pdf-label">Date:</td><td id="pdfDate"></td>
@@ -553,7 +545,6 @@
                     <td class="pdf-label">Send Via:</td><td id="pdfCourier"></td>
                 </tr>
             </table>
-
             <table class="pdf-table">
                 <thead>
                     <tr>
@@ -563,16 +554,12 @@
                         <th style="width: 35%;">PAYMENT DETAILS</th>
                     </tr>
                 </thead>
-                <tbody id="pdfTableBody">
-                    <!-- Rows injected here -->
-                </tbody>
+                <tbody id="pdfTableBody"></tbody>
             </table>
-
             <div class="pdf-summary">
                 <div style="font-size: 12pt; text-transform: uppercase;">Total Invoices</div>
                 <div class="pdf-summary-val" id="pdfTotal">0</div>
             </div>
-
             <div class="pdf-footer">
                 NOTES: Direct/GL patients should have Official Receipt or Collection Receipt attached on Sales Invoice.
             </div>
@@ -614,39 +601,32 @@
 
         // --- 3. NAVIGATION & INITIALIZATION (SLIDE EFFECT) ---
         function enterSystem() {
-            // Hide Button, Show Loading Bar
             document.getElementById('btnEnter').style.display = 'none';
             document.getElementById('loadingContainer').style.display = 'block';
 
-            // Animate Loading Bar
             setTimeout(() => {
                 document.getElementById('loadingBar').style.width = '100%';
             }, 50);
 
-            // Trigger Slide and Entry
             setTimeout(() => {
                 const intro = document.getElementById('introScreen');
                 const main = document.getElementById('mainContent');
                 
-                // Slide up intro
                 intro.style.transform = 'translateY(-100%)';
                 
-                // Show main content smoothly
                 main.style.display = 'flex';
                 setTimeout(() => {
                     main.style.opacity = '1';
                     main.style.transform = 'translateY(0)';
                 }, 50);
 
-                // Initialize Inputs
                 document.getElementById('valDate').valueAsDate = new Date();
                 if(document.querySelectorAll('.list-row').length === 0) { addRow(); }
                 loadHistory();
 
-                // Completely hide intro after transition
                 setTimeout(() => { intro.style.display = 'none'; }, 800);
 
-            }, 1300); // Wait for loading bar to finish (1.2s)
+            }, 1300); 
         }
 
         // --- 4. FORM DYNAMICS & COMMA FORMATTING ---
@@ -706,7 +686,6 @@
                 <button class="btn-del-row" onclick="removeRow(this)">X</button>
             `;
             container.appendChild(div);
-            // Auto scroll down to the new item
             container.scrollTop = container.scrollHeight;
             updateRowNumbers();
         }
@@ -754,9 +733,15 @@
             return true;
         }
 
-        // --- 6. HISTORY MANAGEMENT (LOCAL STORAGE) ---
+        // --- 6. HISTORY MANAGEMENT & ANTI-DUPLICATE ---
         function saveToHistory(record) {
             let history = JSON.parse(localStorage.getItem('deliveryHistory')) || [];
+            
+            // ANTI-DUPLICATE: Kung kapareho lang ng nasa top history ang data, wag na isave ulit.
+            if(history.length > 0 && JSON.stringify(history[0]) === JSON.stringify(record)) {
+                return; 
+            }
+
             history.unshift(record); 
             if(history.length > 15) history.pop(); 
             localStorage.setItem('deliveryHistory', JSON.stringify(history));
@@ -782,50 +767,55 @@
                             <span class="history-date">${fDate} | PROCESSED BY: ${rec.processor}</span>
                         </div>
                         <div class="history-actions">
+                            <button class="btn-icon" title="Re-copy Text" onclick='copyFromHistory(${index})'>📋</button>
                             <button class="btn-icon" title="Re-download PDF" onclick='generatePDFFromHistory(${JSON.stringify(rec)})'>📥</button>
-                            <button class="btn-icon del" title="Delete Record" onclick="deleteHistory(${index})">🗑️</button>
+                            <button class="btn-icon del" title="Send to Rider/Delete" onclick="promptDeleteHistory(${index})">🗑️</button>
                         </div>
                     </div>
                 `;
             });
         }
 
-        function deleteHistory(index) {
-            if(confirm("Delete this record from history?")) {
-                let history = JSON.parse(localStorage.getItem('deliveryHistory')) || [];
-                history.splice(index, 1);
-                localStorage.setItem('deliveryHistory', JSON.stringify(history));
-                loadHistory(); 
-            }
-        }
+        // --- 7. MODAL ALERT & SMART DELETE MANAGEMENT ---
+        let historyIndexToDelete = -1;
 
-        // --- 7. MODAL ALERT MANAGEMENT ---
-        function showReminder() {
-            const overlay = document.getElementById('reminderModal');
-            const box = document.getElementById('reminderBox');
-            
+        function openModal(modalId, boxId) {
+            const overlay = document.getElementById(modalId);
+            const box = document.getElementById(boxId);
             overlay.style.display = 'flex';
-            
-            // Allow display:flex to render before triggering opacity transition
             setTimeout(() => {
                 overlay.style.opacity = '1';
                 box.style.transform = 'scale(1)';
             }, 10);
         }
 
-        function closeReminder() {
-            const overlay = document.getElementById('reminderModal');
-            const box = document.getElementById('reminderBox');
-            
+        function closeModal(modalId, boxId) {
+            const overlay = document.getElementById(modalId);
+            const box = document.getElementById(boxId);
             overlay.style.opacity = '0';
             box.style.transform = 'scale(0.90)';
-            
             setTimeout(() => {
                 overlay.style.display = 'none';
-            }, 300); // Matches CSS transition time
+            }, 300);
         }
 
-        // --- 8. EXPORT ACTIONS ---
+        function promptDeleteHistory(index) {
+            historyIndexToDelete = index;
+            openModal('deleteModal', 'deleteBox');
+        }
+
+        function confirmDelete(isYes) {
+            if(isYes && historyIndexToDelete !== -1) {
+                let history = JSON.parse(localStorage.getItem('deliveryHistory')) || [];
+                history.splice(historyIndexToDelete, 1);
+                localStorage.setItem('deliveryHistory', JSON.stringify(history));
+                loadHistory(); 
+            }
+            closeModal('deleteModal', 'deleteBox');
+            historyIndexToDelete = -1;
+        }
+
+        // --- 8. EXPORT & COPY ACTIONS ---
         function getFormData() {
             const data = {
                 date: document.getElementById('valDate').value,
@@ -840,7 +830,6 @@
                 const pType = row.querySelector('.in-payment-type').value;
                 const rawAmt = row.querySelector('.in-amount').value.replace(/,/g, ''); 
                 const amt = parseFloat(rawAmt) || 0;
-                
                 const formattedAmount = amt.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
                 data.patients.push({
@@ -852,26 +841,44 @@
             return data;
         }
 
+        function generateTextOutput(data) {
+            const formattedDate = new Date(data.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
+            let text = `📋 FINAL LIST FOR DELIVERY\n========================\n📅 DATE: ${formattedDate}\n📍 LOCATION: ${data.location}\n👤 PROCESSED BY: ${data.processor}\n🚚 SEND VIA: ${data.courier}\n\n📄 PATIENT LIST:\n\n`;
+            data.patients.forEach((p, i) => { text += `${i + 1}. ${p.name} (${p.agency})\n📌 ${p.paymentText}\n\n`; });
+            text += `========================\n📊 TOTAL INVOICES: ${data.invoices}\n\n⚠️ NOTES: DIRECT/GL PATIENTS SHOULD HAVE OFFICIAL RECEIPT OR COLLECTION RECEIPT ATTACHED ON SALES INVOICE.`;
+            return text;
+        }
+
         function executeAction(type) {
             if(!validateForm()) return;
             const data = getFormData();
             
+            // BOTH PDF and COPY will save to history now
+            saveToHistory(data);
+
             if(type === 'copy') {
-                const formattedDate = new Date(data.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
-                let text = `📋 FINAL LIST FOR DELIVERY\n========================\n📅 DATE: ${formattedDate}\n📍 LOCATION: ${data.location}\n👤 PROCESSED BY: ${data.processor}\n🚚 SEND VIA: ${data.courier}\n\n📄 PATIENT LIST:\n\n`;
-                data.patients.forEach((p, i) => { text += `${i + 1}. ${p.name} (${p.agency})\n📌 ${p.paymentText}\n\n`; });
-                text += `========================\n📊 TOTAL INVOICES: ${data.invoices}\n\n⚠️ NOTES: DIRECT/GL PATIENTS SHOULD HAVE OFFICIAL RECEIPT OR COLLECTION RECEIPT ATTACHED ON SALES INVOICE.`;
-                navigator.clipboard.writeText(text).then(() => alert("✅ COPIED TO CLIPBOARD!"));
+                const text = generateTextOutput(data);
+                navigator.clipboard.writeText(text).then(() => alert("✅ COPIED TO CLIPBOARD AND SAVED TO HISTORY!"));
             
             } else if(type === 'pdf') {
-                saveToHistory(data); 
                 generatePDF(data);
-                
-                // PALABASIN ANG REMINDER POPUP PAGKATAPOS MAG-EXPORT
-                setTimeout(() => {
-                    showReminder();
-                }, 1000); 
+                setTimeout(() => { openModal('reminderModal', 'reminderBox'); }, 1000); 
             }
+        }
+
+        // Action from History Widget -> Copy Text
+        function copyFromHistory(index) {
+            let history = JSON.parse(localStorage.getItem('deliveryHistory')) || [];
+            let data = history[index];
+            if(!data) return;
+            
+            const text = generateTextOutput(data);
+            navigator.clipboard.writeText(text).then(() => alert("✅ RE-COPIED TO CLIPBOARD!"));
+        }
+
+        // Action from History Widget -> Generate PDF
+        function generatePDFFromHistory(recordData) {
+            generatePDF(recordData);
         }
 
         // --- 9. HTML2PDF GENERATOR ---
@@ -911,10 +918,6 @@
             html2pdf().set(opt).from(element).save().then(() => {
                 element.style.display = 'none'; 
             });
-        }
-
-        function generatePDFFromHistory(recordData) {
-            generatePDF(recordData);
         }
     </script>
 </body>
